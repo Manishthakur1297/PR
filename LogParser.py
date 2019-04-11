@@ -1,6 +1,9 @@
 from file_titles import titles
 import os
 import re
+import numpy as np
+import pandas as pd
+import hashlib
 
 
 class LogParser:
@@ -14,24 +17,31 @@ class LogParser:
     def Read_file(self,file_name):
         try:
             f = open(self.file_name, "r")
-            i = 0
+            i = 1
+            mainList = []
+            d = dict()
             for line in f:
-                i+=1
-                #print("\n\n")
                 l = re.findall(self.rex, line)
-                #print(l)
-                print("-------------------")
                 size = len(self.format)
                 l[size-1] = ' '.join(l[size-1:])
                 del l[size:]
-                #print(l)
+                template_id = hashlib.md5(l[size-1].encode('utf-8')).hexdigest()[0:8]
+                if(template_id not in d):
+                    d[template_id] = "E"+str(i)
+                    i+=1
 
-                for k,v in zip(self.format,l):
-                    print(k + " : "+ v)
-                    print()
+                l.append(d[template_id])
+                
+                mainList.append(l)
 
-                if i==5:
-                    break
+                # for k,v in zip(self.format,l):
+                #     print(k + " : "+ v)
+                #     print()
+
+            self.format.append('Event')
+            pd.set_option('display.max_columns', None)  
+            df = pd.DataFrame(mainList, columns=self.format)
+            df.to_csv(self.file_name+"_structured.csv", sep=',', encoding='utf-8', index=False)
 
         except Exception as e:
             print(e)
